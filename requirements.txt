@@ -6,6 +6,7 @@ crispy-bootstrap4>=2022.1
 django-countries>=7.5
 stripe>=5.4
 Pillow>=9.5
+ipinfo>=1.1.0
 
 # ML & Data Science
 pandas>=1.5
