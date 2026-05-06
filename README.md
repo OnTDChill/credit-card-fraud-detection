@@ -1,22 +1,40 @@
 # Fraud Model Detective
 
-Unified credit-card fraud detection product with a Django API backend, model training and evaluation pipelines, and a multi-page Streamlit governance dashboard.
+Unified credit-card fraud detection product with a Django API backend, model training and evaluation pipelines, and a multi-page Streamlit CEO Dashboard.
 
 ## Current Product Stack
 
-- Backend API: Django (`manage.py`, `core/`)
-- Dashboard: Streamlit (`streamlit_app/app.py`)
-- Data store: SQLite (`db.sqlite3`, `artifacts/fraud_system.db`)
-- ML stack: scikit-learn + imbalanced-learn pipelines (`core/`)
-- Dataset: IEEE-CIS and generated demo batches (`data/`)
+- **Backend API**: Django (`manage.py`, `core/`)
+- **CEO Dashboard**: Streamlit (`streamlit_app/app.py`)
+- **Data store**: SQLite (`db.sqlite3`, `artifacts/fraud_system.db`)
+- **ML stack**: scikit-learn + imbalanced-learn pipelines (`core/`)
+- **Dataset**: PaySim and generated demo batches (`data/`)
 
 ## Repository Layout
 
-- `core/`: API, decision engine, training and retrain pipelines, benchmarks
-- `streamlit_app/`: Unified BI-style dashboard with page navigation
-- `artifacts/`: model artifacts, benchmark outputs, predictions
-- `data/`: raw and demo datasets
-- `djecommerce/settings/`: Django settings profiles
+```
+├── config.py                 # Centralized configuration
+├── core/                     # Django app: API, ML pipelines, ETL
+│   ├── etl/                  # Data loading scripts (PaySim, Marketing, CSKH)
+│   ├── services/fraud/       # ML training, inference, policy engine
+│   └── ...
+├── streamlit_app/            # CEO Dashboard
+│   ├── app.py                # Main entry point
+│   ├── pages/
+│   │   ├── ceo/              # Business pages (Tổng quan, Doanh thu, An toàn, Dịch vụ, Báo cáo)
+│   │   └── tech/             # Technical pages (Xét duyệt, Tinh chỉnh, Kỹ thuật)
+│   ├── components/           # Reusable UI components & DSS engine
+│   └── shared_ui.py          # Common styling & layout
+├── docs/                     # Documentation
+│   ├── architecture/         # System design docs
+│   ├── operations/           # Runbooks & deployment guides
+│   └── guides/               # User guides
+├── data/                     # Raw datasets
+├── artifacts/                # Model artifacts & outputs
+├── djecommerce/              # Django settings
+├── templates/                # Django HTML templates
+└── static_in_env/            # Static assets
+```
 
 ## Requirements
 
@@ -31,9 +49,7 @@ From the repository root:
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install "pip<24" "setuptools<58" "wheel<0.41"
-python -m pip install --no-build-isolation -r requirements.txt
-python -m pip install -r requirements-ml.txt
+pip install -r requirements.txt
 ```
 
 If the environment was created earlier and you only need to reactivate it:
@@ -49,29 +65,15 @@ python manage.py migrate --noinput
 python manage.py runserver
 ```
 
-Backend base URL used by the dashboard:
+Backend base URL: `http://127.0.0.1:8000/api/fraud`
 
-- `http://127.0.0.1:8000/api/fraud`
-
-Default local API key:
-
-- `local-fraud-api-key`
-
-## Run Unified Streamlit Dashboard
-
-Start the backend first, then run the dashboard:
+## Run CEO Dashboard
 
 ```powershell
-Set-Location .\streamlit_app
-python -m streamlit run app.py
+python -m streamlit run streamlit_app/app.py
 ```
 
-The legacy single-file dashboard remains available for debugging:
-
-```powershell
-Set-Location .\streamlit_app
-python -m streamlit run fraud_dashboard.py
-```
+Dashboard will be available at `http://localhost:8501`
 
 ## Test Gate
 

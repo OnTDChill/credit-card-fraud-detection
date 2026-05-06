@@ -14,6 +14,8 @@ from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from django.views.generic import ListView, DetailView, View
 
+from config import UNIFIED_PAYMENTS_PATH
+
 from .forms import CheckoutForm, CouponForm, RefundForm, PaymentForm
 from .models import Item, OrderItem, Order, Address, Payment, Coupon, Refund, UserProfile
 
@@ -269,7 +271,7 @@ class PaymentView(View):
             handler = ipinfo.getHandler(access_token)
             details = handler.getDetails()      # getting all the details about location
             # this file can be downloaded from Stripe Admin account
-            with open(r'D:\Django\DJ-Mart\credit-card-fraud-detection\core\unified_payments.csv', 'r') as file:
+            with open(UNIFIED_PAYMENTS_PATH, "r", encoding="utf-8") as file:
                 reader = csv.DictReader(file)
                 sum = 0
                 for row in reader:

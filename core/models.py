@@ -240,6 +240,18 @@ class FraudTransaction(models.Model):
     model_name = models.CharField(max_length=128, blank=True, null=True)
     model_version = models.CharField(max_length=64, blank=True, null=True)
     fraud_score = models.FloatField(default=0)
+    transaction_type = models.CharField(
+        max_length=32,
+        choices=(
+            ('PAYMENT', 'Thanh toan'),
+            ('TRANSFER', 'Chuyen tien'),
+            ('CASH_IN', 'Nap vi'),
+            ('CASH_OUT', 'Rut tien'),
+            ('DEBIT', 'Thanh toan hoa don'),
+        ),
+        default='PAYMENT',
+        help_text='PaySim transaction type mapped to Vietnamese e-wallet services',
+    )
     is_fraud_prediction = models.BooleanField(default=False)
     decision = models.CharField(max_length=16, choices=DECISION_CHOICES, default='allow')
     decision_reasons = models.TextField(blank=True, null=True)

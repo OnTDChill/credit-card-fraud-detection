@@ -5,8 +5,8 @@ from __future__ import annotations
 import streamlit as st
 
 
-DEFAULT_PAGE_LAYOUT = "wide"
-DEFAULT_SIDEBAR_STATE = "expanded"
+DEFAULT_PAGE_LAYOUT = "wide" # type: ignore
+DEFAULT_SIDEBAR_STATE = "expanded" # type: ignore
 DEFAULT_PAGE_TITLE = "Fraud Model Detective"
 
 
@@ -22,6 +22,9 @@ THEME_CSS = """
     --fd-muted: #9fb0c7;
     --fd-accent: #4cc9f0;
     --fd-accent-soft: rgba(76, 201, 240, 0.15);
+    --fd-success: #22c55e;
+    --fd-warning: #f59e0b;
+    --fd-danger: #ef4444;
 }
 
 .stApp {
@@ -137,6 +140,88 @@ button[kind="primary"],
 button[kind="secondary"] {
     border-radius: 12px;
 }
+
+.fd-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.fd-kpi-card {
+    border-radius: 20px;
+    border: 1px solid var(--fd-border);
+    background: var(--fd-surface-strong);
+    padding: 1.1rem 1.2rem;
+    box-shadow: 0 18px 36px rgba(2, 8, 20, 0.28);
+}
+
+.fd-kpi-card h3 {
+    margin: 0 0 0.45rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--fd-muted);
+}
+
+.fd-kpi-card .fd-kpi-value {
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: var(--fd-text);
+}
+
+.fd-kpi-card .fd-kpi-subtitle {
+    margin-top: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--fd-muted);
+}
+
+.fd-kpi-card .fd-kpi-delta {
+    margin-top: 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.fd-kpi-card .fd-kpi-delta.up {
+    color: var(--fd-success);
+}
+
+.fd-kpi-card .fd-kpi-delta.down {
+    color: var(--fd-danger);
+}
+
+.fd-kpi-card .fd-kpi-delta.neutral {
+    color: var(--fd-warning);
+}
+
+.fd-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.fd-pill--success {
+    background: rgba(34, 197, 94, 0.18);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.fd-pill--warning {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fde68a;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.fd-pill--danger {
+    background: rgba(239, 68, 68, 0.18);
+    color: #fecaca;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}
 </style>
 """
 
@@ -168,5 +253,103 @@ def render_page_header(title: str, subtitle: str, kicker: str = "Fraud Operation
             <p>{subtitle}</p>
         </div>
         """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_kpi_card(label: str, value: str, subtitle: str = "", help_text: str = "", delta: str | None = None, delta_inverted: bool = False) -> None:
+    safe_help = help_text.replace("\"", "&quot;") if help_text else ""
+    title_attr = f" title=\"{safe_help}\"" if safe_help else ""
+    subtitle_html = f"<div class=\"fd-kpi-subtitle\">{subtitle}</div>" if subtitle else ""
+    delta_html = ""
+    if delta:
+        cls = "up" if delta.startswith("+") else "down" if delta.startswith("-") else "neutral"
+        if delta_inverted:
+            cls = "down" if cls == "up" else "up" if cls == "down" else cls
+        delta_html = f'<div class="fd-kpi-delta {cls}">{delta}</div>'
+    st.markdown(
+        f"""
+        <div class="fd-kpi-card"{title_attr}>
+            <h3>{label}</h3>
+            <div class="fd-kpi-value">{value}</div>
+            {subtitle_html}
+            {delta_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_ceo_command_panel(
+    tab_key: str,
+    commands: list[dict],
+) -> None:
+    """Render a CEO command panel with a list of predefined commands.
+
+    Args:
+        tab_key: Unique key prefix for this tab (e.g. "m1", "m2").
+        commands: List of dicts with keys:
+            - label: Display name of the command
+            - recipient: Who receives the command (e.g. "Giám đốc Marketing")
+            - next_steps: List of suggested follow-up actions (strings)
+    """
+    from datetime import datetime
+
+    session_key = f"ceo_cmd_{tab_key}"
+    if session_key not in st.session_state:
+        st.session_state[session_key] = []
+
+    st.subheader("Gửi chỉ thị")
+    st.caption("Chọn lệnh và gửi yêu cầu cho bộ phận phụ trách")
+
+    labels = [c["label"] for c in commands]
+    selected_idx = st.selectbox(
+        "Chọn chỉ thị",
+        range(len(labels)),
+        format_func=lambda i: labels[i],
+        key=f"{tab_key}_cmd_select",
+    )
+    selected_cmd = commands[selected_idx]
+
+    st.markdown(f"**Gửi cho:** {selected_cmd['recipient']}")
+
+    note = st.text_input(
+        "Ghi chú thêm (tuỳ chọn)",
+        placeholder="Ví dụ: Ưu tiên xử lý trong tuần này...",
+        key=f"{tab_key}_cmd_note",
+    )
+
+    if st.button("Gửi chỉ thị", key=f"{tab_key}_cmd_send", type="primary"):
+        entry = {
+            "time": datetime.now().strftime("%H:%M %d/%m/%Y"),
+            "action": selected_cmd["label"],
+            "recipient": selected_cmd["recipient"],
+            "note": note,
+        }
+        st.session_state[session_key].append(entry)
+        st.success(f"Đã gửi **\"{selected_cmd['label']}\"** cho {selected_cmd['recipient']}")
+
+        # Show what happens next in reality
+        st.markdown("---")
+        st.markdown("##### Quy trình sẽ diễn ra sau khi gửi:")
+        for i, step in enumerate(selected_cmd["next_steps"], 1):
+            st.markdown(f"{i}. {step}")
+
+    # History
+    history = st.session_state[session_key]
+    if history:
+        with st.expander(f"Lịch sử chỉ thị ({len(history)} lệnh)", expanded=False):
+            for d in reversed(history[-10:]):
+                note_text = f" — *\"{d['note']}\"*" if d.get("note") else ""
+                st.markdown(
+                    f"• **{d['time']}** — {d['action']} → _{d['recipient']}_{note_text}"
+                )
+
+
+def render_status_pill(label: str, tone: str, help_text: str = "") -> None:
+    safe_help = help_text.replace("\"", "&quot;") if help_text else ""
+    title_attr = f" title=\"{safe_help}\"" if safe_help else ""
+    st.markdown(
+        f"<span class=\"fd-pill fd-pill--{tone}\"{title_attr}>{label}</span>",
         unsafe_allow_html=True,
     )
