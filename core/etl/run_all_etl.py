@@ -9,12 +9,12 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from load_paysim import load_paysim_to_dss
-from load_marketing import load_marketing_to_dss
-from load_cskh import load_cskh_to_dss
-from load_credit import load_credit_to_dss
-from load_merchant import load_merchant_to_dss
-from load_ecosystem import load_ecosystem_to_dss
+from .load_paysim import load_paysim_to_dss
+from .load_marketing import load_marketing_to_dss
+from .load_cskh import load_cskh_to_dss
+from .load_credit import load_credit_to_dss
+from .load_merchant import load_merchant_to_dss
+from .load_ecosystem import load_ecosystem_to_dss
 
 
 def run_all_etl() -> dict:
