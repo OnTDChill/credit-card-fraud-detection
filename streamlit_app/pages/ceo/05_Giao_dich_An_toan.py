@@ -36,6 +36,9 @@ if txn.empty:
 # ── Compute metrics ──
 total_gmv = txn["total_amount"].sum()
 total_count = txn["total_count"].sum()
+
+# Convert fraud_rate to percentage
+txn["fraud_rate"] = txn["fraud_rate"] * 100
 fraud_rate = txn["fraud_rate"].mean()
 
 # By transaction type
@@ -67,10 +70,10 @@ with st.expander("Xem chi tiết: Phân loại giao dịch", expanded=False):
         st.markdown("##### GMV theo loại giao dịch")
         type_labels = {
             "PAYMENT": "Thanh toán",
-            "TRANSFER": "Chuyển khoản",
-            "CASH_IN": "Nạp tiền",
+            "TRANSFER": "Chuyển tiền",
+            "CASH_IN": "Nạp ví",
             "CASH_OUT": "Rút tiền",
-            "DEBIT": "Trừ nợ",
+            "DEBIT": "Thanh toán hóa đơn",
         }
         by_type["Loại"] = by_type["transaction_type"].map(type_labels)
         by_type["GMV (tỷ)"] = by_type["total_amount"] / 1e9
@@ -128,6 +131,9 @@ with st.expander("Xem chi tiết: Phân loại giao dịch", expanded=False):
 with st.expander("Phân bổ gian lận theo vùng miền", expanded=False):
     txn_reg = get_transaction_by_region(year=f_year, month=f_month)
     if not txn_reg.empty:
+        # Convert fraud_rate to percentage
+        txn_reg["fraud_rate"] = txn_reg["fraud_rate"] * 100
+        
         col_g1, col_g2 = st.columns(2)
         with col_g1:
             fig_gmv_reg = go.Figure(go.Bar(
@@ -158,26 +164,6 @@ with st.expander("Phân bổ gian lận theo vùng miền", expanded=False):
     else:
         st.info("Chưa có dữ liệu theo vùng miền.")
 
-# ── Fraud by Region ──
-with st.expander("Phân bổ gian lận theo vùng miền", expanded=False):
-    txn_reg = get_transaction_by_region(year=f_year, month=f_month)
-    if not txn_reg.empty:
-        fig_fraud = go.Figure(go.Bar(
-            x=txn_reg["region"], y=txn_reg["fraud_rate"],
-            text=[f"{v:.2f}%" for v in txn_reg["fraud_rate"]],
-            textposition="outside",
-            marker_color=["#ef4444", "#f59e0b", "#22c55e"],
-            hovertemplate="<b>%{x}</b><br>Gian lận: %{y:.2f}%<extra></extra>",
-        ))
-        fig_fraud.update_layout(
-            title="Tỷ lệ gian lận theo vùng", yaxis_title="Gian lận (%)",
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#e5eefb"), height=300, showlegend=False,
-        )
-        st.plotly_chart(fig_fraud, width='stretch', key="fraud_by_region", config={"displayModeBar": False})
-    else:
-        st.info("Chưa có dữ liệu gian lận theo vùng.")
-
 # ── Fraud by Khu vực (Thành thị, Nông thôn, Biển đảo, Biên giới) ──
 with st.expander("Phân bổ gian lận theo khu vực", expanded=False):
     if not txn_reg.empty:
@@ -193,12 +179,13 @@ with st.expander("Phân bổ gian lận theo khu vực", expanded=False):
         
         for _, row in txn_reg.iterrows():
             region = row["region"]
-            fraud_rate = row["fraud_rate"]
+            # Note: txn_reg["fraud_rate"] is already multiplied by 100 above
+            f_rate_raw = row["fraud_rate"] / 100 
             total_amount = row["total_amount"]
             mapping = khu_vuc_mapping.get(region, {"Thành thị": 0.5, "Nông thôn": 0.3, "Biên giới": 0.1, "Biển đảo": 0.1})
             for khu_vuc, weight in mapping.items():
                 khu_vuc_total[khu_vuc] += total_amount * weight
-                khu_vuc_fraud[khu_vuc] += total_amount * weight * fraud_rate
+                khu_vuc_fraud[khu_vuc] += total_amount * weight * f_rate_raw
         
         khu_vuc_rates = {}
         for khu_vuc in khu_vuc_total:

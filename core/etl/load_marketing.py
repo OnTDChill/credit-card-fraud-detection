@@ -95,8 +95,8 @@ def _assign_periods(df: pd.DataFrame, periods: list[tuple[int, int]]) -> None:
     )
     invalid_mask = ~valid_mask
     if invalid_mask.any():
-        df.loc[invalid_mask, "year"] = fallback_years[invalid_mask]
-        df.loc[invalid_mask, "month"] = fallback_months[invalid_mask]
+        df.loc[invalid_mask, "year"] = fallback_years[invalid_mask].astype("int32")
+        df.loc[invalid_mask, "month"] = fallback_months[invalid_mask].astype("int32")
 
 
 def _insert_marketing_to_db(df: pd.DataFrame) -> dict[str, Any]:

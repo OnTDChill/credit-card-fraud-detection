@@ -142,7 +142,7 @@ if _npl_current > 5:
     alerts.append(("error", f"Nợ xấu {_npl_current:.1f}% — vượt ngưỡng nguy hiểm 5%!"))
 elif _npl_current > 3:
     alerts.append(("warning", f"Nợ xấu {_npl_current:.1f}% — vượt ngưỡng cảnh báo 3%"))
-_fraud_current = txn["fraud_rate"].mean() if not txn.empty else 0
+_fraud_current = txn["fraud_rate"].mean() * 100 if not txn.empty else 0
 if _fraud_current > 2:
     alerts.append(("error", f"Gian lận {_fraud_current:.2f}% — vượt ngưỡng an toàn"))
 elif _fraud_current > 1:
