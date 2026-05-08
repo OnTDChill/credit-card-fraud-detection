@@ -229,7 +229,7 @@ with st.expander("Phân bổ gian lận theo khu vực", expanded=False):
 
 # ── Fraud Trend Forecast ──
 with st.expander("Kịch bản: Dự báo xu hướng gian lận 4 quý tới", expanded=False):
-    st.caption("Dự báo dựa trên xu hướng gian lận hiện tại và các yếu tố rủi ro")
+    st.caption("Dự báo dựa trên xu hướng gian lận hiện tại, có tính đến yếu tố bên ngoài")
     
     # Get historical fraud data for trend analysis
     txn_hist = get_transaction_summary(year=None, month=None)
@@ -237,6 +237,22 @@ with st.expander("Kịch bản: Dự báo xu hướng gian lận 4 quý tới", 
         txn_hist = txn_hist.sort_values(["year", "month"])
         # Calculate average fraud rate from history
         avg_fraud_rate = txn_hist["fraud_rate"].mean()
+
+        # Real-world context for fraud scenarios
+        fraud_scenario_context = {
+            "Cải thiện (-20%/quý)": (
+                "Triển khai AI chống gian lận mới, tăng cường xác thực sinh trắc học, "
+                "phối hợp chặt với Ngân hàng Nhà nước và công an mạng."
+            ),
+            "Ổn định (giữ nguyên)": (
+                "Duy trì hệ thống hiện tại. Gian lận mới bù đắp bởi cải tiến phát hiện. "
+                "Không có thay đổi lớn về chính sách hoặc công nghệ."
+            ),
+            "Xấu đi (+30%/quý)": (
+                "Xu hướng tội phạm mạng gia tăng toàn cầu, deepfake và social engineering "
+                "phức tạp hơn, hệ thống phòng thủ chưa kịp nâng cấp."
+            ),
+        }
         
         # Scenario selection
         scenario = st.radio(
@@ -248,6 +264,8 @@ with st.expander("Kịch bản: Dự báo xu hướng gian lận 4 quý tới", 
             ],
             horizontal=True, key="m5_fraud_scenario"
         )
+        
+        st.caption(f"**Giả định:** {fraud_scenario_context.get(scenario, '')}")
         
         scenario_changes = {
             "Cải thiện (-20%/quý)": -0.20,
@@ -284,11 +302,16 @@ with st.expander("Kịch bản: Dự báo xu hướng gian lận 4 quý tới", 
         rate_change = final_rate - fraud_rates[0]
         
         if quarterly_change < 0:
-            st.success(f"An toàn: Gian lận dự kiến giảm từ {fraud_rates[0]:.2f}% → {final_rate:.2f}% sau 4 quý")
+            st.success(f"An toàn: Gian lận dự kiến giảm từ {fraud_rates[0]:.2f}% -> {final_rate:.2f}% sau 4 quý")
         elif quarterly_change == 0:
-            st.info(f"Ổn định: Gian lận dự kiến giữ mức {fraud_rates[0]:.2f}% → {final_rate:.2f}% sau 4 quý")
+            st.info(f"Ổn định: Gian lận dự kiến giữ mức {fraud_rates[0]:.2f}% -> {final_rate:.2f}% sau 4 quý")
         else:
-            st.warning(f"Cảnh báo: Gian lận dự kiến tăng từ {fraud_rates[0]:.2f}% → {final_rate:.2f}% sau 4 quý")
+            st.warning(f"Cảnh báo: Gian lận dự kiến tăng từ {fraud_rates[0]:.2f}% -> {final_rate:.2f}% sau 4 quý")
+
+        st.caption(
+            "Lưu ý: Dự báo phụ thuộc vào mức đầu tư an ninh mạng, xu hướng tội phạm số, "
+            "và hiệu quả phối hợp liên ngành. Cần cập nhật hàng quý."
+        )
     else:
         st.info("Chưa có dữ liệu lịch sử để dự báo.")
 

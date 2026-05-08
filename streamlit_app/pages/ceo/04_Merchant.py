@@ -305,7 +305,22 @@ with st.expander("Kịch bản: Mời đối tác nâng cấp gói dịch vụ",
 # ── Kịch bản 2: Mở rộng mạng lưới đối tác 1-3 năm ──
 with st.expander("Kịch bản: Mở rộng mạng lưới đối tác 1-3 năm", expanded=False):
     if not merch.empty:
-        st.caption("Dự báo dựa trên số lượng đối tác hiện tại và các chiến lược mở rộng")
+        st.caption("Dự báo dựa trên số lượng đối tác hiện tại, có tính yếu tố thị trường")
+
+        expansion_context = {
+            "Bảo thủ (+10%/năm)": (
+                "Kinh tế chậm lại, chi phí tuân thủ pháp lý tăng (Nghị định quản lý fintech), "
+                "tập trung giữ chân đối tác hiện tại thay vì mở rộng."
+            ),
+            "Cân bằng (+25%/năm)": (
+                "Kinh tế ổn định, xu hướng số hóa thanh toán tiếp tục. "
+                "Mở rộng vừa phải vào các thành phố loại 2 và kênh online."
+            ),
+            "Tích cực (+50%/năm)": (
+                "Chính phủ đẩy mạnh thanh toán không tiền mặt, hỗ trợ SME chuyển đổi số. "
+                "Đầu tư lớn vào đội ngũ BD và hạ tầng onboarding tự động."
+            ),
+        }
         
         strategy = st.radio(
             "Chọn chiến lược mở rộng:",
@@ -316,6 +331,8 @@ with st.expander("Kịch bản: Mở rộng mạng lưới đối tác 1-3 năm"
             ],
             horizontal=True, key="m4_expansion_strategy"
         )
+
+        st.caption(f"**Giả định:** {expansion_context.get(strategy, '')}")
         
         growth_rates = {
             "Bảo thủ (+10%/năm)": 0.10,
@@ -346,7 +363,7 @@ with st.expander("Kịch bản: Mở rộng mạng lưới đối tác 1-3 năm"
                 hovertemplate="<b>%{x}</b><br>Đối tác: %{y:,}<extra></extra>",
             ))
             fig_partners.update_layout(
-                title=f"Dự báo số đối tác - {strategy}",
+                title=f"Dự báo số đối tác - {strategy.split(' (')[0]}",
                 yaxis_title="Số đối tác",
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#e5eefb"), height=300,
@@ -372,9 +389,14 @@ with st.expander("Kịch bản: Mở rộng mạng lưới đối tác 1-3 năm"
         
         growth_3y = partners[3] - partners[0]
         rev_growth_3y = projected_revenue[3] - projected_revenue[0]
-        st.success(f"Sau 3 năm: Từ {partners[0]:,} → {partners[3]:,} đối tác (+{growth_3y:,}), Doanh thu từ {projected_revenue[0]/1e9:.1f} → {projected_revenue[3]/1e9:.1f} tỷ (+{rev_growth_3y/1e9:.1f} tỷ)")
+        st.success(f"Sau 3 nam: Tu {partners[0]:,} -> {partners[3]:,} doi tac (+{growth_3y:,}), Doanh thu tu {projected_revenue[0]/1e9:.1f} -> {projected_revenue[3]/1e9:.1f} ty (+{rev_growth_3y/1e9:.1f} ty)")
+
+        st.caption(
+            "Luu y: Toc do mo rong phu thuoc vao nang luc onboarding, "
+            "moi truong phap ly, va muc do canh tranh tu cac doi thu (VNPay, ZaloPay, ShopeePay)."
+        )
     else:
-        st.info("Chưa có dữ liệu.")
+        st.info("Chua co du lieu.")
 
 
 st.divider()

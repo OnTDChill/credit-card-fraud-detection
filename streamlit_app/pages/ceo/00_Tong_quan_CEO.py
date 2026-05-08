@@ -226,27 +226,27 @@ with st.expander("Phân bổ theo vùng miền", expanded=False):
         with col_r1:
             fig_reg = go.Figure(go.Bar(
                 x=txn_reg["region"], y=txn_reg["total_amount"] / 1e9,
-                text=[f"{v:.1f}B" for v in txn_reg["total_amount"] / 1e9],
+                text=[f"{v:.1f}T" for v in txn_reg["total_amount"] / 1e9],
                 textposition="outside",
                 marker_color=["#4cc9f0", "#22c55e", "#f59e0b"],
                 hovertemplate="<b>%{x}</b><br>GMV: %{y:.1f} tỷ<extra></extra>",
             ))
             fig_reg.update_layout(
-                title="GMV theo vùng miền", yaxis_title="GMV (tỷ VND)",
+                title="GMV theo vùng miền (Tỷ VND)", yaxis_title="GMV (tỷ VND)",
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#e5eefb"), height=300, showlegend=False,
             )
             st.plotly_chart(fig_reg, width='stretch', key="overview_reg_gmv_1", config={"displayModeBar": False})
         with col_r2:
             fig_freg = go.Figure(go.Bar(
-                x=txn_reg["region"], y=txn_reg["fraud_rate"],
-                text=[f"{v:.2f}%" for v in txn_reg["fraud_rate"]],
+                x=txn_reg["region"], y=txn_reg["fraud_rate"] * 100,
+                text=[f"{v*100:.2f}%" for v in txn_reg["fraud_rate"]],
                 textposition="outside",
                 marker_color=["#ef4444", "#f59e0b", "#22c55e"],
                 hovertemplate="<b>%{x}</b><br>Gian lận: %{y:.2f}%<extra></extra>",
             ))
             fig_freg.update_layout(
-                title="Tỷ lệ gian lận theo vùng", yaxis_title="Gian lận (%)",
+                title="Tỷ lệ gian lận theo vùng (%)", yaxis_title="Gian lận (%)",
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#e5eefb"), height=300, showlegend=False,
             )
@@ -256,14 +256,14 @@ with st.expander("Phân bổ theo vùng miền", expanded=False):
 
     if not merch_reg.empty:
         fig_mreg = go.Figure(go.Bar(
-            x=merch_reg["region"], y=merch_reg["total_revenue"] / 1e6,
-            text=[f"{v:.0f}M" for v in merch_reg["total_revenue"] / 1e6],
+            x=merch_reg["region"], y=merch_reg["total_revenue"] / 1e9,
+            text=[f"{v/1e9:.2f}T" for v in merch_reg["total_revenue"]],
             textposition="outside",
             marker_color=["#818cf8", "#4cc9f0", "#22c55e"],
-            hovertemplate="<b>%{x}</b><br>Doanh thu: %{y:.0f} triệu<extra></extra>",
+            hovertemplate="<b>%{x}</b><br>Doanh thu: %{y:.2f} tỷ<extra></extra>",
         ))
         fig_mreg.update_layout(
-            title="Doanh thu đối tác theo vùng", yaxis_title="Doanh thu (triệu VND)",
+            title="Doanh thu đối tác theo vùng (Tỷ VND)", yaxis_title="Doanh thu (tỷ VND)",
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#e5eefb"), height=300, showlegend=False,
         )

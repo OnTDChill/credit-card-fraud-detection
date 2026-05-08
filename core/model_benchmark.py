@@ -70,12 +70,16 @@ class ModelBenchmark:
         self.X_val = val[feature_cols]
         self.y_val = val['isFraud']
         
+        from sklearn.impute import SimpleImputer
+        
         # Build preprocessing pipeline - fit ONLY on training data
         numeric_transformer = Pipeline(steps=[
+            ('imputer', SimpleImputer(strategy='median')),
             ('scaler', StandardScaler())
         ])
         
         categorical_transformer = Pipeline(steps=[
+            ('imputer', SimpleImputer(strategy='most_frequent')),
             ('onehot', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
         ])
         
@@ -167,6 +171,13 @@ class ModelBenchmark:
         # Calculate metrics
         tn, fp, fn, tp = confusion_matrix(self.y_val, y_pred).ravel()
         
+        # Business Cost of Error (VND)
+        # Loss from FN: Fraud missed (Value of transaction lost)
+        # Loss from FP: Customer friction/churn cost
+        avg_fraud_vnd = 122.21 * 25000  # Based on AVG_FRAUD_AMOUNT from config (approx 3M VND)
+        churn_cost_vnd = 200000.0        # Based on CUSTOMER_CHURN_COST from config
+        cost_of_error = (int(fn) * avg_fraud_vnd) + (int(fp) * churn_cost_vnd)
+
         metrics = {
             'model': model_name,
             'train_time_seconds': round(train_time, 2),
@@ -182,6 +193,7 @@ class ModelBenchmark:
             'f1': round(f1_score(self.y_val, y_pred, zero_division=0), 4),
             'roc_auc': round(roc_auc_score(self.y_val, y_proba), 4),
             'pr_auc': round(average_precision_score(self.y_val, y_proba), 4),
+            'cost_of_error': int(cost_of_error),
             'threshold': threshold
         }
         
@@ -238,7 +250,7 @@ class ModelBenchmark:
 
 
 if __name__ == "__main__":
-    from data_pipeline import DataPipeline
+    from core.data_pipeline import DataPipeline
     
     logging.basicConfig(level=logging.INFO)
     
@@ -247,7 +259,9 @@ if __name__ == "__main__":
     train_df, _ = pipeline.run_ingestion()
     
     # Run benchmark
-    benchmark = ModelBenchmark(train_df)
+    # Sample data to avoid memory issues during benchmarking (590k records is too large for dense OneHot)
+    sample_size = 100000
+    benchmark = ModelBenchmark(train_df.iloc[:sample_size])
     benchmark.prepare_time_based_split()
     benchmark.run_full_benchmark()
     benchmark.export_results()

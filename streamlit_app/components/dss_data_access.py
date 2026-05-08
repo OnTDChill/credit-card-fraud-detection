@@ -425,7 +425,9 @@ def get_transaction_by_region(
                    SUM(revenue_estimated) as revenue_estimated,
                    SUM(fraud_count) as fraud_count,
                    SUM(fraud_amount) as fraud_amount,
-                   AVG(fraud_rate) as fraud_rate
+                   CASE WHEN SUM(total_count) > 0 
+                        THEN SUM(fraud_count) * 1.0 / SUM(total_count) 
+                        ELSE 0 END as fraud_rate
             FROM dss_transaction_summary
             WHERE 1=1
         """

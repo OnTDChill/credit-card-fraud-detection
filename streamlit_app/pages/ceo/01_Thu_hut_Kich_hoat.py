@@ -129,7 +129,7 @@ with st.expander("Kịch bản: Thay đổi ngân sách Marketing", expanded=Fal
             "Thay đổi ngân sách (%)",
             -50, 100, 0, 10,
             help="Âm = giảm ngân sách, Dương = tăng ngân sách",
-            key=f"m1_budget_short_term_{id(mkt)}"
+            key="m1_budget_short_term"
         )
 
         new_budget = total_spend * (1 + budget_change / 100)
@@ -173,11 +173,10 @@ with st.expander("Kịch bản: Dự báo tăng trưởng khách hàng 1-3 năm"
         growth_series = monthly["acq_est"].pct_change().dropna()
 
         if len(growth_series) < 3:
-            # Fix: Generate reasonable synthetic data for growth projection when history is insufficient
-            st.info("Đang tạo dữ liệu dự báo dựa trên xu hướng thị trường (do thiếu dữ liệu lịch sử).")
+            st.info("Dự báo dựa trên giả định thị trường fintech Việt Nam (do thiếu dữ liệu lịch sử).")
             rate_low, rate_mid, rate_high = -0.05, 0.15, 0.30
         else:
-            st.info(f"Dự báo dựa trên tăng trưởng thực tế {len(growth_series)} kỳ gần nhất (phân vị lịch sử).")
+            st.info(f"Dự báo dựa trên tăng trưởng thực tế {len(growth_series)} kỳ gần nhất.")
             q_low, q_mid, q_high = growth_series.quantile([0.25, 0.5, 0.75]).tolist()
 
             def _annualize(monthly_rate: float) -> float:
@@ -187,6 +186,22 @@ with st.expander("Kịch bản: Dự báo tăng trưởng khách hàng 1-3 năm"
             rate_low = _annualize(q_low)
             rate_mid = _annualize(q_mid)
             rate_high = _annualize(q_high)
+
+        # Real-world context for each scenario
+        scenario_context = {
+            "Thận trọng": (
+                "Kinh tế giảm tốc, lãi suất tăng, cạnh tranh gay gắt từ ngân hàng số. "
+                "Người dùng thận trọng hơn trong chi tiêu và đăng ký dịch vụ mới."
+            ),
+            "Cơ bản": (
+                "Kinh tế ổn định, thị trường fintech tiếp tục tăng trưởng theo xu hướng. "
+                "Chính sách thanh toán không tiền mặt của Chính phủ hỗ trợ tích cực."
+            ),
+            "Tích cực": (
+                "Kinh tế phục hồi mạnh, thu nhập khả dụng tăng, hạ tầng số phát triển. "
+                "Mở rộng thành công sang thị trường nông thôn và nhóm khách trung niên."
+            ),
+        }
 
         scenario = st.radio(
             "Chọn kịch bản:",
@@ -204,6 +219,10 @@ with st.expander("Kịch bản: Dự báo tăng trưởng khách hàng 1-3 năm"
         }
         rate = growth_rates[scenario]
 
+        # Show context for selected scenario
+        scenario_key = scenario.split(" (")[0]
+        st.caption(f"**Giả định:** {scenario_context.get(scenario_key, '')}")
+
         years = ["Hiện tại", "Năm 1", "Năm 2", "Năm 3"]
         customers = [acq]
         for _ in range(3):
@@ -218,7 +237,7 @@ with st.expander("Kịch bản: Dự báo tăng trưởng khách hàng 1-3 năm"
             hovertemplate="<b>%{x}</b><br>Khách hàng: %{y:,}<extra></extra>",
         ))
         fig_growth.update_layout(
-            title=f"Dự báo khách hàng - Kịch bản {scenario.split()[1]}",
+            title=f"Dự báo khách hàng - Kịch bản {scenario_key}",
             yaxis_title="Số khách hàng",
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#e5eefb"), height=350,
@@ -231,9 +250,16 @@ with st.expander("Kịch bản: Dự báo tăng trưởng khách hàng 1-3 năm"
 
         growth_3y = customers[3] - customers[0]
         growth_pct = (customers[3] / customers[0] - 1) * 100 if customers[0] > 0 else 0
-        st.success(f"Sau 3 năm: Từ {customers[0]:,} → {customers[3]:,} khách (+{growth_3y:,}, tăng {growth_pct:.0f}%)")
+        st.success(f"Sau 3 năm: Từ {customers[0]:,} -> {customers[3]:,} khach (+{growth_3y:,}, tang {growth_pct:.0f}%)")
+
+        # Risk caveat
+        st.caption(
+            "Luu y: Du bao mang tinh tham khao, phu thuoc nhieu yeu to ben ngoai "
+            "(chinh sach Nha nuoc, bien dong kinh te, hanh vi nguoi tieu dung). "
+            "Can cap nhat kich ban hang quy."
+        )
     else:
-        st.info("Chưa đủ dữ liệu marketing để dự báo tăng trưởng.")
+        st.info("Chua du du lieu marketing de du bao tang truong.")
 
 # ── Cohort Retention Analysis ──
 with st.expander("Phân tích Cohort: Giữ chân khách hàng", expanded=False):

@@ -254,16 +254,35 @@ def _plot_confusion_matrix(cm: np.ndarray) -> go.Figure:
     if cm.size == 0:
         cm = np.array([[0, 0], [0, 0]])
 
+    # Standard layout: Act 0 on top, Act 1 on bottom
+    # Plotly Heatmap: y[0] is bottom. So we reverse the labels and data rows.
+    z_data = cm[::-1]  # Flip rows
+    y_labels = ["Thực tế 1", "Thực tế 0"]
+    x_labels = ["Dự đoán 0", "Dự đoán 1"]
+
+    # Calculate row-normalized values for better color scaling in imbalanced data
+    row_sums = cm.sum(axis=1, keepdims=True)
+    z_norm = np.divide(cm, row_sums, out=np.zeros_like(cm, dtype=float), where=row_sums != 0)
+    z_norm_display = z_norm[::-1]
+
     fig = go.Figure(
         data=go.Heatmap(
-            z=cm,
-            x=["Dự đoán 0", "Dự đoán 1"],
-            y=["Thực tế 0", "Thực tế 1"],
+            z=z_norm_display,
+            x=x_labels,
+            y=y_labels,
+            text=z_data,
+            texttemplate="%{text}",
             colorscale="Blues",
-            showscale=False,
+            showscale=True,
+            hovertemplate="<b>%{y}</b><br><b>%{x}</b><br>Số lượng: %{text}<br>Tỷ lệ: %{z:.2%}<extra></extra>",
         )
     )
-    fig.update_layout(title="Ma trận nhầm lẫn", height=320, template="plotly_dark")
+    fig.update_layout(
+        title="Ma trận nhầm lẫn (Chuẩn hóa theo hàng)",
+        height=350,
+        template="plotly_dark",
+        xaxis=dict(side="top")
+    )
     return fig
 
 
@@ -384,7 +403,33 @@ def main() -> None:
     if benchmark_df.empty:
         st.info("Chưa có dữ liệu benchmark để hiển thị.")
     else:
-        st.dataframe(benchmark_df.sort_values("f1", ascending=False), width='stretch')
+        # Style and format the benchmark table
+        st.caption("Dưới đây là kết quả thử nghiệm đa mô hình (bao gồm Baseline Logistic Regression).")
+        
+        display_df = benchmark_df.sort_values("f1", ascending=False)
+        
+        st.dataframe(
+            display_df,
+            column_config={
+                "model": "Mô hình",
+                "cost_of_error": st.column_config.NumberColumn(
+                    "Cost of Error (VND)",
+                    help="Tổng tổn thất dự kiến = (Bỏ sót × Giá trị giao dịch) + (Chặn nhầm × Chi phí mất khách)",
+                    format="%d ₫",
+                ),
+                "f1": st.column_config.NumberColumn("F1-Score", format="%.4f"),
+                "recall": st.column_config.NumberColumn("Recall", format="%.4f"),
+                "precision": st.column_config.NumberColumn("Precision", format="%.4f"),
+                "latency_p95_ms": st.column_config.NumberColumn("P95 Latency (ms)", format="%.3f ms"),
+            },
+            hide_index=True,
+            use_container_width=True
+        )
+        
+        st.info(
+            "💡 **Chỉ số 'Cost of Error'** giúp CEO đánh giá thiệt hại tài chính thực tế. "
+            "Mô hình lý tưởng không chỉ có F1 cao mà còn có **Cost of Error thấp nhất**."
+        )
 
     with st.expander("Phân tích lỗi (False Negative & False Positive)"):
         _render_error_analysis(test_frame, float(threshold))

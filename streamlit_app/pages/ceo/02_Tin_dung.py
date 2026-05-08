@@ -163,7 +163,7 @@ with st.expander("Xem chi tiết: Tình trạng nợ & Phân bổ dư nợ", exp
 # ── Chính sách cho vay hiện tại ──
 with st.expander("Chính sách cho vay hiện tại", expanded=False):
     if not credit.empty:
-        st.caption("Tóm tắt chính sách theo dữ liệu kỳ báo cáo.")
+        st.caption("Tóm tắt tình hình cho vay theo từng nhóm khách hàng")
         policy_df = credit.groupby("segment").agg(
             credit_limit=("credit_limit", "mean"),
             interest_rate=("interest_rate", "mean"),
@@ -171,7 +171,44 @@ with st.expander("Chính sách cho vay hiện tại", expanded=False):
             total_users=("total_users", "sum"),
             total_outstanding=("total_outstanding", "sum"),
         ).reset_index()
-        st.dataframe(policy_df, width='stretch')
+
+        segment_names = {
+            "GenZ": "Trẻ (18-25)",
+            "Sinh viên": "Sinh viên",
+            "Sinh vien": "Sinh viên",
+            "NV Văn phòng": "Nhân viên VP",
+            "Kinh doanh": "Kinh doanh",
+            "Hưu trí": "Hưu trí",
+            "Tiểu thương": "Tiểu thương",
+        }
+
+        def _risk_label(npl_val: float) -> str:
+            if npl_val < 3:
+                return "An toàn"
+            elif npl_val < 5:
+                return "Theo dõi"
+            return "Rủi ro cao"
+
+        display_df = pd.DataFrame({
+            "Nhóm khách hàng": policy_df["segment"].map(lambda x: segment_names.get(x, x)),
+            "Số khách vay": policy_df["total_users"].apply(lambda x: f"{int(x):,}"),
+            "Hạn mức TB": policy_df["credit_limit"].apply(lambda x: f"{x/1e6:.1f} triệu"),
+            "Lãi suất": policy_df["interest_rate"].apply(lambda x: f"{x:.1f}%/năm"),
+            "Tổng dư nợ": policy_df["total_outstanding"].apply(lambda x: f"{x/1e9:.1f} tỷ"),
+            "Nợ khó đòi": policy_df["npl_rate"].apply(lambda x: f"{x:.1f}%"),
+            "Đánh giá": policy_df["npl_rate"].apply(_risk_label),
+        })
+        st.dataframe(display_df, width='stretch', hide_index=True)
+
+        # CEO-oriented summary
+        worst = policy_df.loc[policy_df["npl_rate"].idxmax()]
+        best = policy_df.loc[policy_df["npl_rate"].idxmin()]
+        worst_name = segment_names.get(worst["segment"], worst["segment"])
+        best_name = segment_names.get(best["segment"], best["segment"])
+        st.markdown(
+            f"**Nhận xét:** Nhóm **{worst_name}** có nợ khó đòi cao nhất ({worst['npl_rate']:.1f}%), "
+            f"nhóm **{best_name}** an toàn nhất ({best['npl_rate']:.1f}%)."
+        )
     else:
         st.info("Chưa có dữ liệu.")
 
@@ -181,17 +218,22 @@ with st.expander("Xu hướng nợ xấu theo lịch sử", expanded=False):
     if not hist_npl.empty:
         hist_npl = hist_npl.sort_values(["year", "month"]).reset_index(drop=True)
         fig_npl = go.Figure()
-        hist_labels = [f"T{i+1}" for i in range(len(hist_npl))]
+        hist_labels = [f"T{int(r['month'])}/{int(r['year'])}" for _, r in hist_npl.iterrows()]
         fig_npl.add_trace(go.Scatter(
             x=hist_labels, y=hist_npl["npl_rate"],
-            mode="lines+markers", name="Lịch sử",
+            mode="lines+markers", name="Nợ khó đòi",
             line=dict(color="#9fb0c7", width=2),
             marker=dict(size=6),
-            hovertemplate="%{x}<br>NPL: %{y:.1f}%<extra></extra>",
+            hovertemplate="%{x}<br>Nợ khó đòi: %{y:.1f}%<extra></extra>",
         ))
+        # Add safe threshold line
+        fig_npl.add_hline(y=3, line_dash="dash", line_color="#22c55e",
+                          annotation_text="Ngưỡng an toàn (3%)", annotation_position="top left")
+        fig_npl.add_hline(y=5, line_dash="dash", line_color="#ef4444",
+                          annotation_text="Ngưỡng nguy hiểm (5%)", annotation_position="top left")
         fig_npl.update_layout(
-            title="Xu hướng nợ xấu theo lịch sử",
-            yaxis_title="Tỷ lệ nợ xấu (%)",
+            title="Xu hướng nợ khó đòi theo thời gian",
+            yaxis_title="Tỷ lệ nợ khó đòi (%)",
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#e5eefb"), height=350,
             showlegend=False,
@@ -199,6 +241,23 @@ with st.expander("Xu hướng nợ xấu theo lịch sử", expanded=False):
         st.plotly_chart(fig_npl, width='stretch', config={
             "displayModeBar": True, "scrollZoom": True,
         })
+
+        # Contextual analysis
+        npl_values = hist_npl["npl_rate"].tolist()
+        npl_trend = npl_values[-1] - npl_values[0] if len(npl_values) >= 2 else 0
+        if npl_trend > 0.5:
+            st.warning(
+                f"Nợ khó đòi đang có xu hướng **tăng** ({npl_trend:+.1f}% trong kỳ). "
+                "Yếu tố cần lưu ý: lãi suất thị trường tăng, kinh tế giảm tốc có thể "
+                "ảnh hưởng khả năng trả nợ của khách hàng."
+            )
+        elif npl_trend < -0.3:
+            st.success(
+                f"Nợ khó đòi đang **cải thiện** ({npl_trend:+.1f}% trong kỳ). "
+                "Chính sách xét duyệt và thu hồi đang phát huy hiệu quả."
+            )
+        else:
+            st.info("Nợ khó đòi **ổn định** trong kỳ. Tiếp tục duy trì chính sách hiện tại.")
     else:
         st.info("Chưa có dữ liệu.")
 
